@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radiology Translator</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0;
+            --slate-300: #cbd5e1; --slate-400: #94a3b8; --slate-500: #64748b;
+            --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b;
+            --slate-900: #0f172a;
+            --teal-50: #f0fdfa; --teal-100: #ccfbf1; --teal-200: #99f6e4;
+            --teal-400: #2dd4bf; --teal-500: #14b8a6; --teal-600: #0d9488;
+            --teal-700: #0f766e;
+            --amber-100: #fef3c7; --amber-500: #f59e0b; --amber-600: #d97706;
+            --rose-100: #ffe4e6; --rose-500: #f43f5e; --rose-600: #e11d48;
+            --green-50: #f0fdf4; --green-100: #dcfce7; --green-500: #22c55e;
+            --green-600: #16a34a; --green-700: #15803d;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--slate-50);
+            color: var(--slate-800);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+        h1, h2, h3, .serif { font-family: 'DM Serif Display', Georgia, serif; }
+
+        body::before {
+            content: ''; position: fixed; inset: 0; opacity: 0.03; pointer-events: none; z-index: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        .app { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+        /* Header */
+        .header { text-align: center; margin-bottom: 2.5rem; }
+        .badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: var(--teal-100); color: var(--teal-700);
+            font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.05em; padding: 4px 12px; border-radius: 9999px; margin-bottom: 12px;
+        }
+        .header h1 { font-size: 2rem; color: var(--slate-900); line-height: 1.2; margin-bottom: 8px; }
+        .header p { color: var(--slate-500); font-size: 0.9375rem; max-width: 520px; margin: 0 auto; line-height: 1.6; }
+
+        /* Card */
+        .card {
+            background: #fff; border: 1px solid var(--slate-200); border-radius: 1rem;
+            padding: 28px; margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(15,23,42,0.04), 0 4px 12px rgba(15,23,42,0.03);
+        }
+
+        /* Tabs */
+        .tabs { display: flex; background: var(--slate-100); border-radius: 10px; padding: 4px; margin-bottom: 24px; }
+        .tab {
+            flex: 1; padding: 10px 16px; font-size: 0.875rem; font-weight: 500;
+            border: none; background: transparent; color: var(--slate-500);
+            border-radius: 8px; cursor: pointer; transition: all 0.2s;
+            font-family: inherit;
+        }
+        .tab.active { background: #fff; color: var(--slate-800); box-shadow: 0 1px 3px rgba(15,23,42,0.08); }
+        .tab:hover:not(.active) { color: var(--slate-700); }
+
+        /* Textarea */
+        .textarea {
+            width: 100%; min-height: 220px; border: 1.5px solid var(--slate-200);
+            border-radius: 12px; padding: 16px; font-family: inherit;
+            font-size: 0.9375rem; line-height: 1.6; color: var(--slate-800);
+            resize: vertical; transition: border-color 0.2s;
+        }
+        .textarea:focus { outline: none; border-color: var(--teal-400); box-shadow: 0 0 0 3px rgba(20,184,166,0.12); }
+        .textarea::placeholder { color: var(--slate-400); }
+
+        /* Drop Zone */
+        .dropzone {
+            border: 2px dashed var(--slate-300); border-radius: 12px;
+            padding: 40px 24px; text-align: center; cursor: pointer;
+            transition: all 0.25s; background: var(--slate-50);
+        }
+        .dropzone:hover, .dropzone.dragover { border-color: var(--teal-400); background: var(--teal-50); }
+        .dropzone.has-file { border-color: var(--green-500); background: var(--green-50); border-style: solid; }
+        .dz-icon { width: 48px; height: 48px; margin: 0 auto 12px; color: var(--slate-400); }
+        .dropzone:hover .dz-icon, .dropzone.dragover .dz-icon { color: var(--teal-500); }
+        .dropzone.has-file .dz-icon { color: var(--green-600); }
+        .dz-title { font-weight: 600; color: var(--slate-700); margin-bottom: 4px; }
+        .dz-sub { font-size: 0.8125rem; color: var(--slate-400); }
+        .file-tag {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: var(--green-100); color: var(--green-700);
+            font-weight: 500; font-size: 0.8125rem; padding: 4px 12px;
+            border-radius: 9999px; margin-top: 8px;
+        }
+
+        /* Button */
+        .btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; padding: 14px 24px; margin-top: 20px;
+            font-family: inherit; font-size: 0.9375rem; font-weight: 600;
+            color: #fff; background: linear-gradient(135deg, var(--teal-600), var(--teal-700));
+            border: none; border-radius: 12px; cursor: pointer;
+            transition: all 0.25s; box-shadow: 0 2px 8px rgba(13,148,136,0.25);
+        }
+        .btn:hover { box-shadow: 0 4px 16px rgba(13,148,136,0.35); transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+        .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important; box-shadow: none; }
+
+        /* Spinner */
+        .spinner {
+            width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.35);
+            border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Loading skeleton */
+        .skel { background: #fff; border: 1px solid var(--slate-200); border-radius: 1rem; padding: 28px; margin-bottom: 24px; }
+        .skel-line {
+            height: 14px; border-radius: 6px; margin-bottom: 10px;
+            background: linear-gradient(90deg, var(--slate-100) 25%, var(--slate-200) 50%, var(--slate-100) 75%);
+            background-size: 200% 100%; animation: shimmer 1.5s infinite;
+        }
+        .skel-line:last-child { width: 60%; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* Error */
+        .err {
+            display: flex; align-items: flex-start; gap: 12px;
+            background: var(--rose-100); border: 1px solid rgba(244,63,94,0.2);
+            border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;
+            color: var(--rose-600); font-size: 0.875rem; line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
+        .err svg { flex-shrink: 0; margin-top: 2px; }
+
+        /* Results */
+        .results { animation: fadeIn 0.4s ease; }
+        .summary {
+            background: linear-gradient(135deg, var(--teal-50), #f0f9ff);
+            border: 1px solid var(--teal-200); border-radius: 1rem;
+            padding: 28px; margin-bottom: 24px;
+        }
+        .summary h2 {
+            font-size: 1.25rem; color: var(--teal-700); margin-bottom: 12px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .summary p { font-size: 1.0625rem; line-height: 1.7; color: var(--slate-700); }
+
+        /* Table */
+        .tbl-card {
+            background: #fff; border: 1px solid var(--slate-200); border-radius: 1rem;
+            overflow: hidden; box-shadow: 0 1px 3px rgba(15,23,42,0.04);
+        }
+        .tbl-card h2 { font-size: 1.125rem; padding: 20px 24px 0; color: var(--slate-800); }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        thead th {
+            background: var(--slate-50); font-size: 0.6875rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.06em; color: var(--slate-500);
+            padding: 12px 20px; text-align: left;
+            border-top: 1px solid var(--slate-200); border-bottom: 1px solid var(--slate-200);
+        }
+        tbody td {
+            padding: 16px 20px; font-size: 0.9375rem; line-height: 1.5;
+            border-bottom: 1px solid var(--slate-100); vertical-align: top;
+        }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: var(--slate-50); }
+        .c-term { font-weight: 600; color: var(--slate-800); white-space: nowrap; }
+        .c-trans { color: var(--slate-600); }
+
+        /* Status badges */
+        .badge-s {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 0.75rem; font-weight: 600; padding: 4px 10px;
+            border-radius: 9999px; white-space: nowrap;
+        }
+        .b-normal { background: var(--green-100); color: var(--green-700); }
+        .b-abnormal { background: var(--amber-100); color: var(--amber-600); }
+        .b-critical { background: var(--rose-100); color: var(--rose-600); }
+        .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+        .b-normal .dot { background: var(--green-500); }
+        .b-abnormal .dot { background: var(--amber-500); }
+        .b-critical .dot { background: var(--rose-500); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .disclaimer { text-align: center; font-size: 0.75rem; color: var(--slate-400); margin-top: 2rem; line-height: 1.6; }
+        .hidden { display: none !important; }
+
+        @media (max-width: 640px) {
+            .header h1 { font-size: 1.5rem; }
+            .card { padding: 20px; }
+            thead th, tbody td { padding: 10px 12px; font-size: 0.8125rem; }
+            .c-term { white-space: normal; }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+
+    <header class="header">
+        <div class="badge">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            Internal Clinical Tool
+        </div>
+        <h1>Radiology Translator</h1>
+        <p>Paste or upload a radiology report and receive a clear, patient-friendly translation in seconds.</p>
+    </header>
+
+    <div class="card">
+        <div class="tabs">
+            <button class="tab active" data-tab="text" type="button">
+                <svg style="display:inline;vertical-align:-2px;margin-right:4px" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Paste Text
+            </button>
+            <button class="tab" data-tab="file" type="button">
+                <svg style="display:inline;vertical-align:-2px;margin-right:4px" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                Upload File
+            </button>
+        </div>
+
+        <div id="tab-text">
+            <textarea id="reportText" class="textarea" placeholder="Paste the radiology report findings here…&#10;&#10;Example: CT Abdomen/Pelvis: The liver is unremarkable. A 1.2 cm hypodense lesion is noted in the right lobe of the liver, likely representing a simple hepatic cyst…"></textarea>
+        </div>
+
+        <div id="tab-file" class="hidden">
+            <div id="dropZone" class="dropzone">
+                <svg class="dz-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                <div class="dz-title">Drag & drop your report file here</div>
+                <div class="dz-sub">or click to browse — PDF, JPG, PNG (max 10 MB)</div>
+                <div id="fileInfo" class="hidden"></div>
+            </div>
+            <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" style="display:none">
+        </div>
+
+        <button id="btnTranslate" class="btn" type="button">Translate Report</button>
+    </div>
+
+    <div id="loadingState" class="hidden">
+        <div class="skel">
+            <div class="skel-line" style="width:85%"></div>
+            <div class="skel-line" style="width:70%"></div>
+            <div class="skel-line" style="width:55%"></div>
+        </div>
+        <div class="skel">
+            <div class="skel-line" style="width:40%"></div>
+            <div class="skel-line" style="width:90%"></div>
+            <div class="skel-line" style="width:80%"></div>
+            <div class="skel-line" style="width:75%"></div>
+            <div class="skel-line" style="width:60%"></div>
+        </div>
+    </div>
+
+    <div id="errorState" class="hidden"></div>
+    <div id="resultsState" class="results hidden"></div>
+
+    <div class="disclaimer">
+        This tool provides simplified translations of existing radiology reports only.<br>
+        It does not provide medical advice, diagnoses, or treatment recommendations.<br>
+        Always consult your healthcare provider to discuss your results.<br><br>
+        <strong style="color: var(--slate-500);">⚠ PROTOTYPE ONLY — NOT HIPAA COMPLIANT</strong><br>
+        This application is a proof-of-concept prototype and has not been reviewed for compliance with the<br>
+        Health Insurance Portability and Accountability Act (HIPAA). Do not use with real patient data<br>
+        in a production environment without implementing appropriate safeguards and obtaining a<br>
+        Business Associate Agreement (BAA) with all third-party service providers.
+    </div>
+
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var tabBtns      = document.querySelectorAll('.tab');
+    var tabText      = document.getElementById('tab-text');
+    var tabFile      = document.getElementById('tab-file');
+    var reportText   = document.getElementById('reportText');
+    var dropZone     = document.getElementById('dropZone');
+    var fileInput    = document.getElementById('fileInput');
+    var fileInfo     = document.getElementById('fileInfo');
+    var btnTranslate = document.getElementById('btnTranslate');
+    var loadingState = document.getElementById('loadingState');
+    var errorState   = document.getElementById('errorState');
+    var resultsState = document.getElementById('resultsState');
+
+    var activeTab = 'text';
+    var uploadedFile = null;
+    var MAX_SIZE = 10 * 1024 * 1024;
+    var OK_MIMES = { 'application/pdf': 1, 'image/jpeg': 1, 'image/jpg': 1, 'image/png': 1 };
+
+    tabBtns.forEach(function (b) {
+        b.addEventListener('click', function () {
+            var t = b.dataset.tab;
+            if (t === activeTab) return;
+            activeTab = t;
+            tabBtns.forEach(function (x) { x.classList.toggle('active', x.dataset.tab === t); });
+            tabText.classList.toggle('hidden', t !== 'text');
+            tabFile.classList.toggle('hidden', t !== 'file');
+        });
+    });
+
+    dropZone.addEventListener('click', function () { fileInput.click(); });
+    dropZone.addEventListener('dragover', function (e) { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', function (e) { e.preventDefault(); dropZone.classList.remove('dragover'); });
+    dropZone.addEventListener('drop', function (e) {
+        e.preventDefault(); dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', function () { if (fileInput.files.length) handleFile(fileInput.files[0]); });
+
+    function handleFile(file) {
+        if (!OK_MIMES[file.type]) { showError('Unsupported file type. Upload a PDF, JPG, or PNG.'); return; }
+        if (file.size > MAX_SIZE) { showError('File too large. Max 10 MB.'); return; }
+        var r = new FileReader();
+        r.onload = function () {
+            uploadedFile = { name: file.name, mime: file.type, base64: r.result.split(',')[1] };
+            dropZone.classList.add('has-file');
+            fileInfo.classList.remove('hidden');
+            fileInfo.innerHTML = '<span class="file-tag">' + esc(file.name) + ' (' + fmtBytes(file.size) + ')</span>';
+        };
+        r.onerror = function () { showError('Failed to read file.'); };
+        r.readAsDataURL(file);
+    }
+
+    btnTranslate.addEventListener('click', translate);
+
+    async function translate() {
+        clearStates();
+        var payload;
+        if (activeTab === 'text') {
+            var txt = reportText.value.trim();
+            if (!txt) { showError('Please paste a radiology report first.'); return; }
+            payload = { type: 'text', text: txt };
+        } else {
+            if (!uploadedFile) { showError('Please upload a file first.'); return; }
+            payload = { type: 'file', fileData: uploadedFile.base64, fileMime: uploadedFile.mime, fileName: uploadedFile.name };
+        }
+
+        setLoading(true);
+        try {
+            var resp = await fetch('/api/translate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            var json = await resp.json();
+            if (!resp.ok || !json.success) throw new Error(json.error || 'Unexpected error.');
+            renderResults(json.data);
+        } catch (e) {
+            showError(e.message || 'Network error.');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    function renderResults(d) {
+        var s = d.summary || 'No summary available.';
+        var f = Array.isArray(d.findings) ? d.findings : [];
+        var h = '<div class="summary"><h2><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg> Your Results Summary</h2><p>' + esc(s) + '</p></div>';
+        if (f.length) {
+            h += '<div class="tbl-card"><h2 class="serif">Detailed Translation</h2><table><thead><tr><th>Medical Term</th><th>What It Means</th><th>Status</th></tr></thead><tbody>';
+            f.forEach(function (row) {
+                var st = normStatus(row.status);
+                h += '<tr><td class="c-term">' + esc(row.term || '') + '</td><td class="c-trans">' + esc(row.translation || '') + '</td><td>' + badge(st) + '</td></tr>';
+            });
+            h += '</tbody></table></div>';
+        }
+        resultsState.innerHTML = h;
+        resultsState.classList.remove('hidden');
+        resultsState.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function normStatus(r) {
+        if (!r) return 'normal';
+        var l = r.toLowerCase();
+        if (l.indexOf('critical') !== -1) return 'critical';
+        if (l.indexOf('abnormal') !== -1) return 'abnormal';
+        return 'normal';
+    }
+    function badge(s) {
+        var lbl = { normal: 'Normal', abnormal: 'Abnormal', critical: 'Critical' };
+        return '<span class="badge-s b-' + s + '"><span class="dot"></span>' + (lbl[s] || 'Normal') + '</span>';
+    }
+    function setLoading(on) {
+        loadingState.classList.toggle('hidden', !on);
+        btnTranslate.disabled = on;
+        btnTranslate.innerHTML = on ? '<span class="spinner"></span> Translating\u2026' : 'Translate Report';
+    }
+    function showError(msg) {
+        errorState.innerHTML = '<div class="err"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span>' + esc(msg) + '</span></div>';
+        errorState.classList.remove('hidden');
+    }
+    function clearStates() {
+        errorState.classList.add('hidden'); errorState.innerHTML = '';
+        resultsState.classList.add('hidden'); resultsState.innerHTML = '';
+    }
+    function esc(s) { var d = document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
+    function fmtBytes(b) { return b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(1) + ' MB'; }
+})();
+</script>
+</body>
+</html>
